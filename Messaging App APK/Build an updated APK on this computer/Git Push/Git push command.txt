@@ -1,8 +1,4 @@
-Push the latest app changes to GitHub:
-
-1. Check `git status` and review the changed files.
-2. Build the release APK with `.\gradlew.bat assembleRelease`.
-3. Copy the new `app\build\outputs\apk\release\app-release.apk` over `Messages-icon.apk`.
-4. Stage the app source and updated APK, then commit with a clear message.
-5. Push the `main` branch to `origin`.
-6. Confirm the push succeeded and report the commit ID.
+git status
+git add .
+git commit -m "Describe your changes"
+git push origin main
