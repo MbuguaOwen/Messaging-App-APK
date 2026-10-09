@@ -1,7 +1,10 @@
 package com.achatwithbrenda.demo;
 
 import android.app.Activity;
+import android.content.ActivityNotFoundException;
+import android.content.Intent;
 import android.graphics.Color;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.TypedValue;
@@ -11,6 +14,7 @@ import android.view.Window;
 import android.view.WindowInsets;
 import android.view.ViewGroup;
 import android.webkit.WebChromeClient;
+import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -32,7 +36,28 @@ public final class MainActivity extends Activity {
         WebView webView = new WebView(this);
         webView.setBackgroundColor(Color.rgb(9, 10, 12));
         webView.setOverScrollMode(View.OVER_SCROLL_NEVER);
-        webView.setWebViewClient(new WebViewClient());
+        webView.setWebViewClient(new WebViewClient() {
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                return openExternalLink(request.getUrl());
+            }
+
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView view, String url) {
+                return openExternalLink(Uri.parse(url));
+            }
+
+            private boolean openExternalLink(Uri uri) {
+                String scheme = uri.getScheme();
+                if (!"http".equalsIgnoreCase(scheme) && !"https".equalsIgnoreCase(scheme)) return false;
+                try {
+                    startActivity(new Intent(Intent.ACTION_VIEW, uri));
+                } catch (ActivityNotFoundException ignored) {
+                    // Keep the message view open if no browser is available.
+                }
+                return true;
+            }
+        });
         webView.setWebChromeClient(new WebChromeClient());
 
         WebSettings settings = webView.getSettings();

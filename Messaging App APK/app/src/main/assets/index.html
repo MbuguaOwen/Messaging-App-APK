@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#101114">
   <meta name="description" content="Write and preview a personal message for someone.">
-  <title>MPESA</title>
+  <title>Messages</title>
   <style>
     :root { color-scheme:dark; --bg:#101114; --panel:#191a1e; --bubble:#24262b; --ink:#f4f4f5; --muted:#92949c; --line:#292a2f; --accent:#397cf6; }
     * { box-sizing:border-box }
@@ -50,8 +50,10 @@
     .selection-action { min-height:36px; padding:0 12px; border:1px solid #44464e; border-radius:9px; background:#27292f; color:#f0f0f2; font-size:12px; font-weight:700; }
     .selection-action.delete { border-color:#743c43; background:#522a30; color:#ffdfe2; }
     .selection-action:disabled { opacity:.45; }
-    .message p { margin:0 0 8px; }
+    .message p { margin:0 0 8px; white-space:pre-wrap; overflow-wrap:anywhere; }
     .message p:last-child { margin-bottom:5px; }
+    .message a { color:#a9caff; background:#263752; border-radius:4px; padding:0 2px; text-decoration:underline; text-decoration-thickness:1px; text-underline-offset:2px; overflow-wrap:anywhere; }
+    .message a:active { color:#fff; background:#36527a; }
     .message strong { color:#fff; }
     .meta { color:#858790; font-size:11px; }
     .empty { padding:31px 17px; border:1px dashed #42434a; border-radius:14px; color:var(--muted); text-align:center; font-size:12px; }
@@ -62,7 +64,7 @@
 </head>
 <body>
   <main class="phone">
-    <header class="header"><button class="back-button" id="backToSender" type="button" aria-label="Back to writing">‹</button><div class="avatar" id="headerAvatar">✉</div><div class="brand" id="appBrand">MPESA</div><div class="top-actions"><button class="top-action" type="button" aria-label="Call"><svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.2 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.12.96.36 1.9.7 2.79a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.89.34 1.83.58 2.79.7A2 2 0 0 1 22 16.92z"/></svg></button><button class="top-action" type="button" aria-label="More options"><svg viewBox="0 0 24 24" style="fill:currentColor;stroke:none;width:22px"><circle cx="12" cy="5" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="12" cy="19" r="1.7"/></svg></button></div></header>
+    <header class="header"><button class="back-button" id="backToSender" type="button" aria-label="Back to writing">‹</button><div class="avatar" id="headerAvatar">✉</div><div class="brand" id="appBrand">Messages</div><div class="top-actions"><button class="top-action" type="button" aria-label="Call"><svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.2 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.12.96.36 1.9.7 2.79a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.89.34 1.83.58 2.79.7A2 2 0 0 1 22 16.92z"/></svg></button><button class="top-action" type="button" aria-label="More options"><svg viewBox="0 0 24 24" style="fill:currentColor;stroke:none;width:22px"><circle cx="12" cy="5" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="12" cy="19" r="1.7"/></svg></button></div></header>
     <nav class="tabs" aria-label="Choose view"><button class="tab active" id="senderTab" type="button">Write</button><button class="tab" id="receiverTab" type="button">Received</button></nav>
     <section class="screen active" id="senderScreen" aria-labelledby="senderTitle">
       <h1 id="senderTitle">Write a message</h1>
@@ -93,6 +95,30 @@
     const historyKey = 'messages.history.v1';
     const dateFormatter = new Intl.DateTimeFormat('en-KE', { weekday:'long', day:'numeric', month:'short' });
     const timeFormatter = new Intl.DateTimeFormat('en-KE', { hour:'2-digit', minute:'2-digit', hour12:false });
+    function appendMessageText(element, text) {
+      const linkPattern = /(?:https?:\/\/|www\.)[^\s<>"']+/gi;
+      let cursor = 0;
+      let match;
+      while ((match = linkPattern.exec(text)) !== null) {
+        let visibleLink = match[0].replace(/[.,!;:)\]}]+$/, '');
+        if (!visibleLink) continue;
+        element.appendChild(document.createTextNode(text.slice(cursor, match.index)));
+        const href = /^www\./i.test(visibleLink) ? 'https://' + visibleLink : visibleLink;
+        let parsed;
+        try { parsed = new URL(href); } catch (_) { parsed = null; }
+        if (parsed && (parsed.protocol === 'http:' || parsed.protocol === 'https:')) {
+          const anchor = document.createElement('a');
+          anchor.href = parsed.href;
+          anchor.textContent = visibleLink;
+          anchor.setAttribute('aria-label', 'Open link: ' + visibleLink);
+          element.appendChild(anchor);
+        } else {
+          element.appendChild(document.createTextNode(visibleLink));
+        }
+        cursor = match.index + visibleLink.length;
+      }
+      element.appendChild(document.createTextNode(text.slice(cursor)));
+    }
     function readHistory() {
       try {
         const saved = JSON.parse(localStorage.getItem(historyKey) || '[]');
@@ -174,7 +200,7 @@
         const bubble = document.createElement('article');
         bubble.className = 'message';
         const body = document.createElement('p');
-        body.textContent = item.text;
+        appendMessageText(body, item.text);
         const meta = document.createElement('div');
         meta.className = 'meta';
         meta.textContent = 'From ' + item.sender + ' · SMS · ' + timeFormatter.format(created);

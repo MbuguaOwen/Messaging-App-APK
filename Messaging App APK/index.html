@@ -50,8 +50,10 @@
     .selection-action { min-height:36px; padding:0 12px; border:1px solid #44464e; border-radius:9px; background:#27292f; color:#f0f0f2; font-size:12px; font-weight:700; }
     .selection-action.delete { border-color:#743c43; background:#522a30; color:#ffdfe2; }
     .selection-action:disabled { opacity:.45; }
-    .message p { margin:0 0 8px; }
+    .message p { margin:0 0 8px; white-space:pre-wrap; overflow-wrap:anywhere; }
     .message p:last-child { margin-bottom:5px; }
+    .message a { color:#a9caff; background:#263752; border-radius:4px; padding:0 2px; text-decoration:underline; text-decoration-thickness:1px; text-underline-offset:2px; overflow-wrap:anywhere; }
+    .message a:active { color:#fff; background:#36527a; }
     .message strong { color:#fff; }
     .meta { color:#858790; font-size:11px; }
     .empty { padding:31px 17px; border:1px dashed #42434a; border-radius:14px; color:var(--muted); text-align:center; font-size:12px; }
@@ -93,6 +95,30 @@
     const historyKey = 'messages.history.v1';
     const dateFormatter = new Intl.DateTimeFormat('en-KE', { weekday:'long', day:'numeric', month:'short' });
     const timeFormatter = new Intl.DateTimeFormat('en-KE', { hour:'2-digit', minute:'2-digit', hour12:false });
+    function appendMessageText(element, text) {
+      const linkPattern = /(?:https?:\/\/|www\.)[^\s<>"']+/gi;
+      let cursor = 0;
+      let match;
+      while ((match = linkPattern.exec(text)) !== null) {
+        let visibleLink = match[0].replace(/[.,!;:)\]}]+$/, '');
+        if (!visibleLink) continue;
+        element.appendChild(document.createTextNode(text.slice(cursor, match.index)));
+        const href = /^www\./i.test(visibleLink) ? 'https://' + visibleLink : visibleLink;
+        let parsed;
+        try { parsed = new URL(href); } catch (_) { parsed = null; }
+        if (parsed && (parsed.protocol === 'http:' || parsed.protocol === 'https:')) {
+          const anchor = document.createElement('a');
+          anchor.href = parsed.href;
+          anchor.textContent = visibleLink;
+          anchor.setAttribute('aria-label', 'Open link: ' + visibleLink);
+          element.appendChild(anchor);
+        } else {
+          element.appendChild(document.createTextNode(visibleLink));
+        }
+        cursor = match.index + visibleLink.length;
+      }
+      element.appendChild(document.createTextNode(text.slice(cursor)));
+    }
     function readHistory() {
       try {
         const saved = JSON.parse(localStorage.getItem(historyKey) || '[]');
@@ -174,7 +200,7 @@
         const bubble = document.createElement('article');
         bubble.className = 'message';
         const body = document.createElement('p');
-        body.textContent = item.text;
+        appendMessageText(body, item.text);
         const meta = document.createElement('div');
         meta.className = 'meta';
         meta.textContent = 'From ' + item.sender + ' · SMS · ' + timeFormatter.format(created);
