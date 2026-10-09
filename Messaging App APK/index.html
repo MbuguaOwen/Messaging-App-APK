@@ -64,7 +64,7 @@
 </head>
 <body>
   <main class="phone">
-    <header class="header"><button class="back-button" id="backToSender" type="button" aria-label="Back to writing">‹</button><div class="avatar" id="headerAvatar">✉</div><div class="brand" id="appBrand">Messages</div><div class="top-actions"><button class="top-action" type="button" aria-label="Call"><svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.2 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.12.96.36 1.9.7 2.79a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.89.34 1.83.58 2.79.7A2 2 0 0 1 22 16.92z"/></svg></button><button class="top-action" type="button" aria-label="More options"><svg viewBox="0 0 24 24" style="fill:currentColor;stroke:none;width:22px"><circle cx="12" cy="5" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="12" cy="19" r="1.7"/></svg></button></div></header>
+    <header class="header"><button class="back-button" id="backToSender" type="button" aria-label="Back to writing">‹</button><div class="avatar" id="headerAvatar">✉</div><div class="brand" id="appBrand">Messages</div><div class="top-actions"><button class="top-action" type="button" aria-label="More options"><svg viewBox="0 0 24 24" style="fill:currentColor;stroke:none;width:22px"><circle cx="12" cy="5" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="12" cy="19" r="1.7"/></svg></button></div></header>
     <nav class="tabs" aria-label="Choose view"><button class="tab active" id="senderTab" type="button">Write</button><button class="tab" id="receiverTab" type="button">Received</button></nav>
     <section class="screen active" id="senderScreen" aria-labelledby="senderTitle">
       <h1 id="senderTitle">Write a message</h1>
@@ -213,6 +213,7 @@
     function showScreen(which) {
       const receiver = which === 'receiver';
       document.querySelector('.phone').classList.toggle('receiver-mode', receiver);
+      document.getElementById('headerAvatar').textContent = receiver ? 'M' : '✉';
       document.getElementById('senderScreen').classList.toggle('active', !receiver);
       document.getElementById('receiverScreen').classList.toggle('active', receiver);
       senderTab.classList.toggle('active', !receiver);
