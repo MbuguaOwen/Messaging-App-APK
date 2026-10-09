@@ -1,0 +1,24 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.achatwithbrenda.demo'
+    compileSdk 37
+
+    defaultConfig {
+        applicationId 'com.achatwithbrenda.messages'
+        minSdk 23
+        targetSdk 36
+        versionCode 8
+        versionName '2.5'
+    }
+
+    buildTypes {
+        release {
+            // Signed for direct device installation; keep the app non-debuggable.
+            signingConfig signingConfigs.debug
+            minifyEnabled false
+        }
+    }
+}

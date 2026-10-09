@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#101114">
+  <meta name="description" content="Write and preview a personal message for someone.">
+  <title>Messages</title>
+  <style>
+    :root { color-scheme:dark; --bg:#101114; --panel:#191a1e; --bubble:#24262b; --ink:#f4f4f5; --muted:#92949c; --line:#292a2f; --accent:#397cf6; }
+    * { box-sizing:border-box }
+    body { margin:0; min-height:100vh; background:#090a0c; color:var(--ink); font:15px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif; }
+    button,input { font:inherit } button { cursor:pointer }
+    .phone { position:relative; display:flex; flex-direction:column; width:min(100%,440px); height:100dvh; min-height:650px; margin:0 auto; overflow:hidden; background:var(--bg); }
+    .header { min-height:68px; flex:none; display:flex; align-items:center; gap:12px; padding:0 14px; border-bottom:1px solid var(--line); }
+    .avatar { display:grid; place-items:center; width:39px; height:39px; flex:none; border-radius:50%; color:#fff; background:linear-gradient(145deg,#7257d8,#39277c); font-size:12px; font-weight:900; }
+    .brand { min-width:0; flex:1; font-size:16px; font-weight:760; }
+    .top-actions { display:flex; align-items:center; gap:14px; flex:none; }
+    .top-action { display:grid; place-items:center; width:30px; height:38px; padding:0; border:0; background:transparent; color:#c9cbd2; }
+    .top-action svg { width:23px; height:23px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+    .back-button { display:none; position:absolute; left:12px; width:30px; height:38px; padding:0; border:0; background:transparent; color:#e8e8eb; font-size:28px; line-height:1; }
+    .phone.receiver-mode .back-button { display:grid; place-items:center; }
+    .phone.receiver-mode .header { padding-left:50px; }
+    .phone.receiver-mode .tabs { display:none; }
+    .tabs { flex:none; display:flex; gap:8px; padding:12px 15px; border-bottom:1px solid #222328; }
+    .tab { flex:1; min-height:37px; border:1px solid #34353b; border-radius:10px; background:#1b1c20; color:#c5c6cc; font-size:12px; font-weight:700; }
+    .tab.active { color:white; background:#293d66; border-color:#456db3; }
+    .screen { display:none; flex:1; min-height:0; overflow:auto; padding:20px 18px 24px; }
+    .screen.active { display:block; }
+    h1 { margin:0; font-size:24px; letter-spacing:-.5px; }
+    .intro { margin:5px 0 20px; color:var(--muted); font-size:12px; }
+    .field-label { display:block; margin:16px 0 7px; font-size:12px; color:#d2d3d8; font-weight:700; }
+    .field { width:100%; min-height:49px; padding:0 13px; border:1px solid #393a41; border-radius:11px; outline:none; background:#1b1c20; color:#f3f3f5; }
+    .field:focus { border-color:#739cf0; box-shadow:0 0 0 3px #397cf633; }
+    .hint { margin:6px 1px 0; color:#858790; font-size:10px; }
+    .primary { width:100%; min-height:49px; margin-top:18px; border:0; border-radius:12px; color:white; background:var(--accent); font-size:13px; font-weight:800; box-shadow:0 5px 16px #1554c633; }
+    .primary:disabled { cursor:not-allowed; background:#41444c; color:#a6a7ac; box-shadow:none; }
+    .receiver-head { display:flex; align-items:center; gap:11px; margin-bottom:15px; }
+    .receiver-head h1 { font-size:21px; }
+    .receiver-head p { margin:3px 0 0; color:var(--muted); font-size:11px; }
+    .date { width:max-content; max-width:100%; margin:16px auto 18px; padding:6px 12px; border:1px solid #4a4b52; border-radius:99px; background:#777981; color:#fff; font-size:11px; font-weight:700; }
+    .message { width:fit-content; max-width:95%; margin:0 auto 3px 0; padding:12px 14px 10px; border:1px solid #383940; border-radius:20px 20px 20px 5px; background:#202125; color:#f0f0f2; font-size:16px; line-height:1.45; box-shadow:0 1px 1px #0003; }
+    .message-entry { margin-bottom:15px; }
+    .message-entry { position:relative; touch-action:pan-y; user-select:none; -webkit-user-select:none; }
+    .message-entry.selected .message { border-color:#78a9ff; background:#29364e; box-shadow:0 0 0 2px #397cf655; }
+    .selection-toolbar { position:sticky; top:0; z-index:2; display:flex; align-items:center; justify-content:space-between; gap:12px; margin:-7px -7px 14px; padding:10px 11px; border:1px solid #3b3c43; border-radius:12px; background:#1c1d22; box-shadow:0 5px 16px #0005; }
+    .selection-toolbar[hidden] { display:none; }
+    .selection-count { font-size:13px; font-weight:700; }
+    .selection-actions { display:flex; gap:8px; }
+    .selection-action { min-height:36px; padding:0 12px; border:1px solid #44464e; border-radius:9px; background:#27292f; color:#f0f0f2; font-size:12px; font-weight:700; }
+    .selection-action.delete { border-color:#743c43; background:#522a30; color:#ffdfe2; }
+    .selection-action:disabled { opacity:.45; }
+    .message p { margin:0 0 8px; }
+    .message p:last-child { margin-bottom:5px; }
+    .message strong { color:#fff; }
+    .meta { color:#858790; font-size:11px; }
+    .empty { padding:31px 17px; border:1px dashed #42434a; border-radius:14px; color:var(--muted); text-align:center; font-size:12px; }
+    .footer { flex:none; min-height:45px; display:grid; place-items:center; padding:7px 14px; border-top:1px solid #24252a; background:#151619; color:#a5a6ad; text-align:center; font-size:10px; }
+    @media (min-width:520px) { body { padding:20px 0; } .phone { height:min(900px,calc(100dvh - 40px)); min-height:650px; border:1px solid #292a30; border-radius:28px; box-shadow:0 18px 70px #0009; } }
+    @media (max-height:700px) { .screen { padding-top:13px; } .field-label { margin-top:11px; } }
+  </style>
+</head>
+<body>
+  <main class="phone">
+    <header class="header"><button class="back-button" id="backToSender" type="button" aria-label="Back to writing">‹</button><div class="avatar" id="headerAvatar">✉</div><div class="brand" id="appBrand">Messages</div><div class="top-actions"><button class="top-action" type="button" aria-label="Call"><svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.2 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.12.96.36 1.9.7 2.79a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.89.34 1.83.58 2.79.7A2 2 0 0 1 22 16.92z"/></svg></button><button class="top-action" type="button" aria-label="More options"><svg viewBox="0 0 24 24" style="fill:currentColor;stroke:none;width:22px"><circle cx="12" cy="5" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="12" cy="19" r="1.7"/></svg></button></div></header>
+    <nav class="tabs" aria-label="Choose view"><button class="tab active" id="senderTab" type="button">Write</button><button class="tab" id="receiverTab" type="button">Received</button></nav>
+    <section class="screen active" id="senderScreen" aria-labelledby="senderTitle">
+      <h1 id="senderTitle">Write a message</h1>
+      <p class="intro">Write a personal note and see how it looks when received.</p>
+      <form id="sendForm">
+        <label class="field-label" for="senderName">Your name</label>
+        <input class="field" id="senderName" type="text" maxlength="50" autocomplete="name" placeholder="Enter your name" required>
+        <label class="field-label" for="messageInput">Your message</label>
+        <textarea class="field" id="messageInput" maxlength="500" placeholder="Write your message..." required style="min-height:150px;padding:12px 13px;resize:vertical"></textarea>
+        <button class="primary" id="sendButton" type="submit">Send message</button>
+      </form>
+    </section>
+    <section class="screen" id="receiverScreen" aria-labelledby="receiverTitle">
+      <div id="emptyState" class="empty">No messages yet.<br>Write a message to see it here.</div>
+      <div class="selection-toolbar" id="selectionToolbar" hidden aria-live="polite">
+        <span class="selection-count" id="selectionCount">1 selected</span>
+        <div class="selection-actions"><button class="selection-action" id="cancelSelection" type="button">Cancel</button><button class="selection-action delete" id="deleteSelected" type="button">Delete</button></div>
+      </div>
+      <div id="messageList" aria-live="polite"></div>
+    </section>
+    <footer class="footer">Messages</footer>
+  </main>
+  <script>
+    const senderNameInput = document.getElementById('senderName');
+    const messageInput = document.getElementById('messageInput');
+    const senderTab = document.getElementById('senderTab');
+    const receiverTab = document.getElementById('receiverTab');
+    const historyKey = 'messages.history.v1';
+    const dateFormatter = new Intl.DateTimeFormat('en-KE', { weekday:'long', day:'numeric', month:'short' });
+    const timeFormatter = new Intl.DateTimeFormat('en-KE', { hour:'2-digit', minute:'2-digit', hour12:false });
+    function readHistory() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(historyKey) || '[]');
+        return Array.isArray(saved) ? saved.filter(item => item && typeof item.sender === 'string' && typeof item.text === 'string' && Number.isFinite(Date.parse(item.createdAt))).map((item, index) => ({ ...item, id:typeof item.id === 'string' ? item.id : item.createdAt + '-' + index })).sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt)) : [];
+      } catch (_) { return []; }
+    }
+    let history = readHistory();
+    let selectedIds = new Set();
+    let selectionMode = false;
+    let pressTimer = null;
+    let pressedEntry = null;
+    let pressStartX = 0;
+    let pressStartY = 0;
+    let suppressClickUntil = 0;
+    function saveHistory() {
+      try { localStorage.setItem(historyKey, JSON.stringify(history)); } catch (_) {}
+    }
+    function updateSelectionToolbar() {
+      const toolbar = document.getElementById('selectionToolbar');
+      const count = selectedIds.size;
+      toolbar.hidden = !selectionMode;
+      document.getElementById('selectionCount').textContent = count + ' selected';
+      document.getElementById('deleteSelected').disabled = count === 0;
+    }
+    function toggleMessageSelection(id, entry) {
+      if (selectedIds.has(id)) {
+        selectedIds.delete(id);
+        entry.classList.remove('selected');
+      } else {
+        selectedIds.add(id);
+        entry.classList.add('selected');
+      }
+      selectionMode = selectedIds.size > 0;
+      updateSelectionToolbar();
+    }
+    function startLongPress(event, entry) {
+      if (selectionMode || event.button && event.button !== 0) return;
+      clearTimeout(pressTimer);
+      pressedEntry = entry;
+      pressStartX = event.clientX;
+      pressStartY = event.clientY;
+      const id = entry.dataset.messageId;
+      pressTimer = setTimeout(() => {
+        pressTimer = null;
+        selectionMode = true;
+        selectedIds.add(id);
+        entry.classList.add('selected');
+        suppressClickUntil = Date.now() + 700;
+        updateSelectionToolbar();
+      }, 500);
+    }
+    function stopLongPress() {
+      clearTimeout(pressTimer);
+      pressTimer = null;
+      pressedEntry = null;
+    }
+    function renderHistory() {
+      const list = document.getElementById('messageList');
+      const emptyState = document.getElementById('emptyState');
+      list.replaceChildren();
+      emptyState.hidden = history.length > 0;
+      let previousDate = '';
+      history.forEach(item => {
+        const created = new Date(item.createdAt);
+        const dateLabel = dateFormatter.format(created);
+        if (dateLabel !== previousDate) {
+          const date = document.createElement('div');
+          date.className = 'date';
+          date.textContent = dateLabel;
+          list.appendChild(date);
+          previousDate = dateLabel;
+        }
+        const entry = document.createElement('div');
+        entry.className = 'message-entry';
+        entry.dataset.messageId = item.id;
+        entry.setAttribute('role', 'button');
+        entry.tabIndex = 0;
+        entry.setAttribute('aria-label', 'Message from ' + item.sender + '. Hold to select.');
+        const bubble = document.createElement('article');
+        bubble.className = 'message';
+        const body = document.createElement('p');
+        body.textContent = item.text;
+        const meta = document.createElement('div');
+        meta.className = 'meta';
+        meta.textContent = 'From ' + item.sender + ' · SMS · ' + timeFormatter.format(created);
+        bubble.append(body, meta);
+        entry.appendChild(bubble);
+        list.appendChild(entry);
+      });
+      updateSelectionToolbar();
+    }
+    function showScreen(which) {
+      const receiver = which === 'receiver';
+      document.querySelector('.phone').classList.toggle('receiver-mode', receiver);
+      document.getElementById('senderScreen').classList.toggle('active', !receiver);
+      document.getElementById('receiverScreen').classList.toggle('active', receiver);
+      senderTab.classList.toggle('active', !receiver);
+      receiverTab.classList.toggle('active', receiver);
+    }
+    senderTab.addEventListener('click', () => showScreen('sender'));
+    receiverTab.addEventListener('click', () => showScreen('receiver'));
+    document.getElementById('backToSender').addEventListener('click', () => showScreen('sender'));
+    const messageList = document.getElementById('messageList');
+    messageList.addEventListener('pointerdown', event => {
+      const entry = event.target.closest('.message-entry');
+      if (entry) startLongPress(event, entry);
+    });
+    messageList.addEventListener('pointerup', stopLongPress);
+    messageList.addEventListener('pointercancel', stopLongPress);
+    messageList.addEventListener('pointerleave', stopLongPress);
+    messageList.addEventListener('pointermove', event => {
+      if (pressTimer !== null && pressedEntry && (Math.abs(event.clientX - pressStartX) > 10 || Math.abs(event.clientY - pressStartY) > 10)) stopLongPress();
+    });
+    messageList.addEventListener('click', event => {
+      const entry = event.target.closest('.message-entry');
+      if (!entry) return;
+      if (Date.now() < suppressClickUntil) return;
+      if (selectionMode || event.detail === 0) toggleMessageSelection(entry.dataset.messageId, entry);
+    });
+    messageList.addEventListener('contextmenu', event => {
+      if (event.target.closest('.message-entry')) event.preventDefault();
+    });
+    document.getElementById('cancelSelection').addEventListener('click', () => {
+      selectedIds.clear();
+      selectionMode = false;
+      renderHistory();
+    });
+    document.getElementById('deleteSelected').addEventListener('click', () => {
+      if (selectedIds.size === 0) return;
+      history = history.filter(item => !selectedIds.has(item.id));
+      selectedIds.clear();
+      selectionMode = false;
+      saveHistory();
+      renderHistory();
+    });
+    document.getElementById('sendForm').addEventListener('submit', event => {
+      event.preventDefault();
+      const sender = senderNameInput.value.trim();
+      const message = messageInput.value.trim();
+      if (!sender || !message) return;
+      history.push({ id:Date.now().toString(36) + '-' + Math.random().toString(36).slice(2), sender, text:message, createdAt:new Date().toISOString() });
+      saveHistory();
+      renderHistory();
+      messageInput.value = '';
+      showScreen('receiver');
+    });
+    renderHistory();
+  </script>
+</body>
+</html>
