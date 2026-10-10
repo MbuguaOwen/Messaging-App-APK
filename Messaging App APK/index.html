@@ -314,7 +314,7 @@
       const currentTimestamp = formatEditableTimestamp(new Date());
       timestampInput.value = currentTimestamp;
       const firstSegment = [code, opening].filter(Boolean).join(' ');
-      const fullMessage = [firstSegment, message, currentTimestamp, closing].filter(Boolean).join(' ');
+      const fullMessage = [firstSegment, message, currentTimestamp + '.', closing].filter(Boolean).join(' ');
       history.push({ id:Date.now().toString(36) + '-' + Math.random().toString(36).slice(2), sender, text:fullMessage, createdAt:new Date().toISOString() });
       saveHistory();
       renderHistory();
