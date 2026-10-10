@@ -33,6 +33,7 @@
     .field { width:100%; min-height:49px; padding:0 13px; border:1px solid #393a41; border-radius:11px; outline:none; background:#1b1c20; color:#f3f3f5; }
     .field:focus { border-color:#739cf0; box-shadow:0 0 0 3px #397cf633; }
     .hint { margin:6px 1px 0; color:#858790; font-size:10px; }
+    .field.compact { min-height:44px; }
     .primary { width:100%; min-height:49px; margin-top:18px; border:0; border-radius:12px; color:white; background:var(--accent); font-size:13px; font-weight:800; box-shadow:0 5px 16px #1554c633; }
     .primary:disabled { cursor:not-allowed; background:#41444c; color:#a6a7ac; box-shadow:none; }
     .receiver-head { display:flex; align-items:center; gap:11px; margin-bottom:15px; }
@@ -70,10 +71,14 @@
       <h1 id="senderTitle">Write a message</h1>
       <p class="intro">Write a personal note and see how it looks when received.</p>
       <form id="sendForm">
-        <label class="field-label" for="senderName">Your name</label>
-        <input class="field" id="senderName" type="text" maxlength="50" autocomplete="name" placeholder="Enter your name" required>
+        <label class="field-label" for="openingInput">Opening</label>
+        <input class="field compact" id="openingInput" type="text" maxlength="100" value="Hello, I am OWEN." aria-label="Editable message opening">
         <label class="field-label" for="messageInput">Your message</label>
-        <textarea class="field" id="messageInput" maxlength="500" placeholder="Write your message..." required style="min-height:150px;padding:12px 13px;resize:vertical"></textarea>
+        <textarea class="field" id="messageInput" maxlength="500" placeholder="Type your message..." required style="min-height:110px;padding:12px 13px;resize:vertical"></textarea>
+        <label class="field-label" for="timestampInput">Date and time</label>
+        <input class="field compact" id="timestampInput" type="text" maxlength="40" readonly aria-label="Automatic message date and time">
+        <label class="field-label" for="closingInput">Closing</label>
+        <textarea class="field" id="closingInput" maxlength="200" style="min-height:68px;padding:12px 13px;resize:vertical">Thank you for your time and cooperation. I look forward to our next update.</textarea>
         <button class="primary" id="sendButton" type="submit">Send message</button>
       </form>
     </section>
@@ -88,13 +93,56 @@
     <footer class="footer">Messages</footer>
   </main>
   <script>
-    const senderNameInput = document.getElementById('senderName');
+    const openingInput = document.getElementById('openingInput');
     const messageInput = document.getElementById('messageInput');
+    const timestampInput = document.getElementById('timestampInput');
+    const closingInput = document.getElementById('closingInput');
     const senderTab = document.getElementById('senderTab');
     const receiverTab = document.getElementById('receiverTab');
     const historyKey = 'messages.history.v1';
+    const draftKey = 'messages.writeDraft.v1';
+    const idCounterKey = 'messages.writeIdCounter.v1';
+    const usedCodesKey = 'messages.writeUsedCodes.v1';
     const dateFormatter = new Intl.DateTimeFormat('en-KE', { weekday:'long', day:'numeric', month:'short' });
     const timeFormatter = new Intl.DateTimeFormat('en-KE', { hour:'2-digit', minute:'2-digit', hour12:false });
+    const stampFormatter = new Intl.DateTimeFormat('en-GB', { day:'2-digit', month:'2-digit', year:'2-digit', hour:'numeric', minute:'2-digit', hour12:true });
+    function formatEditableTimestamp(date) {
+      const parts = Object.fromEntries(stampFormatter.formatToParts(date).map(part => [part.type, part.value]));
+      return `${parts.day}/${parts.month}/${parts.year} at ${parts.hour}:${parts.minute} ${parts.dayPeriod.toUpperCase()}`;
+    }
+    function nextMessageCode() {
+      let counter = 0;
+      try { counter = Number(localStorage.getItem(idCounterKey)) || 0; } catch (_) {}
+      counter += 1;
+      try { localStorage.setItem(idCounterKey, String(counter)); } catch (_) {}
+      const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+      let used = [];
+      try { used = JSON.parse(localStorage.getItem(usedCodesKey) || '[]'); } catch (_) {}
+      if (!Array.isArray(used)) used = [];
+      let code = '';
+      do {
+        const bytes = new Uint8Array(7);
+        if (window.crypto && window.crypto.getRandomValues) window.crypto.getRandomValues(bytes);
+        else for (let i = 0; i < bytes.length; i++) bytes[i] = Math.floor(Math.random() * 256);
+        code = 'UIO' + Array.from(bytes, byte => alphabet[byte % alphabet.length]).join('');
+      } while (used.includes(code));
+      used.push(code);
+      try { localStorage.setItem(usedCodesKey, JSON.stringify(used.slice(-5000))); } catch (_) {}
+      return code;
+    }
+    function saveDraft() {
+      try { localStorage.setItem(draftKey, JSON.stringify({ opening:openingInput.value, message:messageInput.value, closing:closingInput.value })); } catch (_) {}
+    }
+    try {
+      const draft = JSON.parse(localStorage.getItem(draftKey) || 'null');
+      if (draft && typeof draft === 'object') {
+        if (typeof draft.opening === 'string') openingInput.value = draft.opening === 'Hello, I am OWEN. UIQPW81IEM' || draft.opening === 'Hello, I am OWEN. UIOKZ7VI7' ? 'Hello, I am OWEN.' : draft.opening;
+        if (typeof draft.message === 'string') messageInput.value = draft.message;
+        if (typeof draft.closing === 'string') closingInput.value = draft.closing;
+      }
+    } catch (_) {}
+    timestampInput.value = formatEditableTimestamp(new Date());
+    [openingInput, messageInput, closingInput].forEach(input => input.addEventListener('input', saveDraft));
     function appendMessageText(element, text) {
       const linkPattern = /(?:https?:\/\/|www\.)[^\s<>"']+/gi;
       let cursor = 0;
@@ -257,13 +305,20 @@
     });
     document.getElementById('sendForm').addEventListener('submit', event => {
       event.preventDefault();
-      const sender = senderNameInput.value.trim();
+      const sender = 'OWEN';
       const message = messageInput.value.trim();
-      if (!sender || !message) return;
-      history.push({ id:Date.now().toString(36) + '-' + Math.random().toString(36).slice(2), sender, text:message, createdAt:new Date().toISOString() });
+      const opening = openingInput.value.trim();
+      const closing = closingInput.value.trim();
+      if (!message) return;
+      const code = nextMessageCode();
+      const currentTimestamp = formatEditableTimestamp(new Date());
+      timestampInput.value = currentTimestamp;
+      const firstSegment = [code, opening].filter(Boolean).join(' ');
+      const fullMessage = [firstSegment, message, currentTimestamp, closing].filter(Boolean).join(' ');
+      history.push({ id:Date.now().toString(36) + '-' + Math.random().toString(36).slice(2), sender, text:fullMessage, createdAt:new Date().toISOString() });
       saveHistory();
       renderHistory();
-      messageInput.value = '';
+      saveDraft();
       showScreen('receiver');
     });
     renderHistory();
